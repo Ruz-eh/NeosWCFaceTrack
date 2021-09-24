@@ -1,16 +1,18 @@
 import copy
 import os
+from socket import socket
 import sys
 import argparse
 import traceback
 import gc
+import mediapipe
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 if os.name == 'nt':
     parser.add_argument("-l", "--list-cameras", type=int, help="Set this to 1 to list the available cameras and quit, set this to 2 or higher to output only the names", default=0)
     parser.add_argument("-a", "--list-dcaps", type=int, help="Set this to -1 to list all cameras and their available capabilities, set this to a camera id to list that camera's capabilities", default=None)
-    parser.add_argument("-W", "--width", type=int, help="Set camera and raw RGB width", default=640)
-    parser.add_argument("-H", "--height", type=int, help="Set camera and raw RGB height", default=360)
+    parser.add_argument("-W", "--width", type=int, help="Set camera and raw RGB width", default=800)
+    parser.add_argument("-H", "--height", type=int, help="Set camera and raw RGB height", default=600)
     parser.add_argument("-F", "--fps", type=int, help="Set camera frames per second", default=18)
     parser.add_argument("-D", "--dcap", type=int, help="Set which device capability line to use or -1 to use the default camera settings", default=None)
     parser.add_argument("-B", "--blackmagic", type=int, help="When set to 1, special support for Blackmagic devices is enabled", default=0)
@@ -121,6 +123,7 @@ if os.name == 'nt' and (args.list_cameras > 0 or not args.list_dcaps is None):
 import numpy as np
 import time
 import cv2
+from mediapipe.python.solutions import hands
 import requests
 import asyncio
 import websockets
@@ -271,6 +274,12 @@ async def facetrack(websocket,path):
     source_name = input_reader.name
     need_reinit = 0
     now = time.time()
+
+    handsModule = mediapipe.solutions.hands
+    # Finger Constants
+    WRIST = handsModule.HandLandmark.WRIST
+    MMCP = handsModule.HandLandmark.MIDDLE_FINGER_MCP
+    RMCP = handsModule.HandLandmark.RING_FINGER_MCP
     
     print("Connection Successful")
 
@@ -290,6 +299,8 @@ async def facetrack(websocket,path):
             ret, frame = input_reader.read()
             if ret:
                 height, width, _ = frame.shape
+
+                hands = handsModule.Hands(static_image_mode=False, min_detection_confidence=0.85, min_tracking_confidence=0.85, max_num_hands=2)
                 tracker = Tracker(width, height, threshold=args.threshold, max_threads=args.max_threads, max_faces=args.faces, discard_after=args.discard_after, scan_every=args.scan_every, silent=False if args.silent == 0 else True, model_type=args.model, model_dir=args.model_dir, no_gaze=False if args.gaze_tracking != 0 and args.model != -1 else True, detection_threshold=args.detection_threshold, use_retinaface=args.scan_retinaface, max_feature_updates=args.max_feature_updates, static_model=True if args.no_3d_adapt == 1 else False, try_hard=args.try_hard == 1)
                 break
             time.sleep(0.01)
@@ -314,11 +325,12 @@ async def facetrack(websocket,path):
                         continue
                 else:
                     break
-
+            frame.flags.writeable = False
             attempt, need_reinit, now = 0, 0, time.time()
 
             try:
                 faces = tracker.predict(frame)
+
                 detected = False
 
                 # Empty string to be sent
@@ -433,9 +445,33 @@ async def facetrack(websocket,path):
                     # Add the eyebrow steepness (sad/angry)
                     try:
                         steepness = (LEyeBrowSteepF(f.current_features['eyebrow_steepness_l'], now) + REyeBrowSteepF(f.current_features['eyebrow_steepness_r'], now)) / 2.0
-                        socketString += f"{steepness:.6f}"
+                        socketString += f"{steepness:.6f},"
                     except:
-                        socketString += "0.0"
+                        socketString += "0.0,"
+
+                handResults = hands.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+
+                if handResults.multi_hand_landmarks != None:
+                    amount = len(handResults.multi_handedness)
+                    index = handResults.multi_handedness[0].classification[0].index  # 0 - Right, 1 - Left
+                    if amount == 2:
+                        if index == 0:
+                            lHand = handResults.multi_hand_landmarks[1]
+                            rHand = handResults.multi_hand_landmarks[0]
+                        else:
+                            lHand = handResults.multi_hand_landmarks[0]
+                            rHand = handResults.multi_hand_landmarks[1]
+                        socketString += f"[{lHand.landmark[lWRIST].x:.6f};{lHand.landmark[lWRIST].y:.6f};{lHand.landmark[lWRIST].z:.6f}],"
+                        socketString += f"[{rHand.landmark[lWRIST].x:.6f};{rHand.landmark[lWRIST].y:.6f};{rHand.landmark[lWRIST].z:.6f}]"
+                    else:
+                        if index == 0:
+                            socketString += "[0.0;0.0;0.0],"
+                            socketString += f"[{handResults.multi_hand_landmarks[0].landmark[lWRIST].x:.6f};{handResults.multi_hand_landmarks[0].landmark[lWRIST].y:.6f};{handResults.multi_hand_landmarks[0].landmark[lWRIST].z:.6f}]"
+                        else:
+                            socketString += f"[{handResults.multi_hand_landmarks[0].landmark[lWRIST].x:.6f};{handResults.multi_hand_landmarks[0].landmark[lWRIST].y:.6f};{handResults.multi_hand_landmarks[0].landmark[lWRIST].z:.6f}],"
+                            socketString += "[0.0;0.0;0.0]"
+                else:
+                    socketString += "[0.0;0.0;0.0],[0.0;0.0;0.0]"
 
                 if detected:
                     if not lastDetected:

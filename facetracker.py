@@ -13,7 +13,7 @@ if os.name == 'nt':
     parser.add_argument("-a", "--list-dcaps", type=int, help="Set this to -1 to list all cameras and their available capabilities, set this to a camera id to list that camera's capabilities", default=None)
     parser.add_argument("-W", "--width", type=int, help="Set camera and raw RGB width", default=640)
     parser.add_argument("-H", "--height", type=int, help="Set camera and raw RGB height", default=360)
-    parser.add_argument("-F", "--fps", type=int, help="Set camera frames per second", default=24)
+    parser.add_argument("-F", "--fps", type=int, help="Set camera frames per second", default=18)
     parser.add_argument("-D", "--dcap", type=int, help="Set which device capability line to use or -1 to use the default camera settings", default=None)
     parser.add_argument("-B", "--blackmagic", type=int, help="When set to 1, special support for Blackmagic devices is enabled", default=0)
 else:
@@ -26,7 +26,7 @@ parser.add_argument("-t", "--threshold", type=float, help="Set minimum confidenc
 parser.add_argument("-d", "--detection-threshold", type=float, help="Set minimum confidence threshold for face detection", default=0.6)
 parser.add_argument("-v", "--visualize", type=int, help="Set this to 1 to visualize the tracking, to 2 to also show face ids, to 3 to add confidence values or to 4 to add numbers to the point display", default=1)
 parser.add_argument("-P", "--pnp-points", type=int, help="Set this to 1 to add the 3D fitting points to the visualization", default=0)
-parser.add_argument("-s", "--silent", type=int, help="Set this to 1 to prevent text output on the console", default=0)
+parser.add_argument("-s", "--silent", type=int, help="Set this to 1 to prevent text output on the console", default=1)
 parser.add_argument("--faces", type=int, help="Set the maximum number of faces (slow)", default=1)
 parser.add_argument("--scan-retinaface", type=int, help="When set to 1, scanning for additional faces will be performed using RetinaFace in a background thread, otherwise a simpler, faster face detection mechanism is used. When the maximum number of faces is 1, this option does nothing.", default=0)
 parser.add_argument("--scan-every", type=int, help="Set after how many frames a scan for new faces should run", default=3)
@@ -125,6 +125,7 @@ if os.name == 'nt' and (args.list_cameras > 0 or not args.list_dcaps is None):
 import numpy as np
 import time
 import cv2
+import mediapipe
 import socket
 import struct
 import json
@@ -248,13 +249,28 @@ try:
             first = False
             height, width, channels = frame.shape
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            drawingModule = mediapipe.solutions.drawing_utils
+            handsModule = mediapipe.solutions.hands
             tracker = Tracker(width, height, threshold=args.threshold, max_threads=args.max_threads, max_faces=args.faces, discard_after=args.discard_after, scan_every=args.scan_every, silent=False if args.silent == 0 else True, model_type=args.model, model_dir=args.model_dir, no_gaze=False if args.gaze_tracking != 0 and args.model != -1 else True, detection_threshold=args.detection_threshold, use_retinaface=args.scan_retinaface, max_feature_updates=args.max_feature_updates, static_model=True if args.no_3d_adapt == 1 else False, try_hard=args.try_hard == 1)
+            hands = handsModule.Hands(static_image_mode=False, min_detection_confidence=0.85, min_tracking_confidence=0.85, max_num_hands=2)
             if not args.video_out is None:
                 out = cv2.VideoWriter(args.video_out, cv2.VideoWriter_fourcc('F','F','V','1'), args.video_fps, (width * args.video_scale, height * args.video_scale))
 
         try:
             inference_start = time.perf_counter()
             faces = tracker.predict(frame)
+            
+            handResults = hands.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            
+
+            if handResults.multi_hand_landmarks != None:
+                #print(handResults.multi_hand_landmarks[1].landmark[handsModule.HandLandmark.INDEX_FINGER_TIP])
+                for handLandmarks in handResults.multi_hand_landmarks:
+                    for point in handsModule.HandLandmark:
+                        normalizedLandmark = handLandmarks.landmark[point]
+                        pixelCoordinatesLandmark = drawingModule._normalized_to_pixel_coordinates(normalizedLandmark.x, normalizedLandmark.y, width, height)
+                        cv2.circle(frame, pixelCoordinatesLandmark, 5, (0, 255, 0), -1)
+
             if len(faces) > 0:
                 inference_time = (time.perf_counter() - inference_start)
                 total_tracking_time += inference_time
