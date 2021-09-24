@@ -280,6 +280,8 @@ async def facetrack(websocket,path):
     WRIST = handsModule.HandLandmark.WRIST
     MMCP = handsModule.HandLandmark.MIDDLE_FINGER_MCP
     RMCP = handsModule.HandLandmark.RING_FINGER_MCP
+
+    MTIP = handsModule.HandLandmark.MIDDLE_FINGER_TIP
     
     print("Connection Successful")
 
@@ -300,7 +302,7 @@ async def facetrack(websocket,path):
             if ret:
                 height, width, _ = frame.shape
 
-                hands = handsModule.Hands(static_image_mode=False, min_detection_confidence=0.85, min_tracking_confidence=0.85, max_num_hands=2)
+                hands = handsModule.Hands(static_image_mode=False, min_detection_confidence=0.75, min_tracking_confidence=0.75, max_num_hands=2)
                 tracker = Tracker(width, height, threshold=args.threshold, max_threads=args.max_threads, max_faces=args.faces, discard_after=args.discard_after, scan_every=args.scan_every, silent=False if args.silent == 0 else True, model_type=args.model, model_dir=args.model_dir, no_gaze=False if args.gaze_tracking != 0 and args.model != -1 else True, detection_threshold=args.detection_threshold, use_retinaface=args.scan_retinaface, max_feature_updates=args.max_feature_updates, static_model=True if args.no_3d_adapt == 1 else False, try_hard=args.try_hard == 1)
                 break
             time.sleep(0.01)
@@ -461,17 +463,36 @@ async def facetrack(websocket,path):
                         else:
                             lHand = handResults.multi_hand_landmarks[0]
                             rHand = handResults.multi_hand_landmarks[1]
-                        socketString += f"[{lHand.landmark[lWRIST].x:.6f};{lHand.landmark[lWRIST].y:.6f};{lHand.landmark[lWRIST].z:.6f}],"
-                        socketString += f"[{rHand.landmark[lWRIST].x:.6f};{rHand.landmark[lWRIST].y:.6f};{rHand.landmark[lWRIST].z:.6f}]"
+                        socketString += f"[{lHand.landmark[WRIST].x:.6f};{lHand.landmark[WRIST].y:.6f};{lHand.landmark[WRIST].z:.6f}],"
+                        socketString += f"[{rHand.landmark[WRIST].x:.6f};{rHand.landmark[WRIST].y:.6f};{rHand.landmark[WRIST].z:.6f}],"
+                        socketString += f"[{lHand.landmark[MMCP].x:.6f};{lHand.landmark[MMCP].y:.6f};{lHand.landmark[MMCP].z:.6f}],"
+                        socketString += f"[{lHand.landmark[RMCP].x:.6f};{lHand.landmark[RMCP].y:.6f};{lHand.landmark[RMCP].z:.6f}],"
+                        socketString += f"[{rHand.landmark[MMCP].x:.6f};{rHand.landmark[MMCP].y:.6f};{rHand.landmark[MMCP].z:.6f}],"
+                        socketString += f"[{rHand.landmark[RMCP].x:.6f};{rHand.landmark[RMCP].y:.6f};{rHand.landmark[RMCP].z:.6f}],"
+                        socketString += f"[{lHand.landmark[MTIP].x:.6f};{lHand.landmark[MTIP].y:.6f};{lHand.landmark[MTIP].z:.6f}],"
                     else:
+                        hand = handResults.multi_hand_landmarks[0]
                         if index == 0:
                             socketString += "[0.0;0.0;0.0],"
-                            socketString += f"[{handResults.multi_hand_landmarks[0].landmark[lWRIST].x:.6f};{handResults.multi_hand_landmarks[0].landmark[lWRIST].y:.6f};{handResults.multi_hand_landmarks[0].landmark[lWRIST].z:.6f}]"
+                            socketString += f"[{hand.landmark[WRIST].x:.6f};{hand.landmark[WRIST].y:.6f};{hand.landmark[WRIST].z:.6f}],"
+                            socketString += "[0.0;0.0;0.0],"
+                            socketString += "[0.0;0.0;0.0],"
+                            socketString += f"[{hand.landmark[MMCP].x:.6f};{hand.landmark[MMCP].y:.6f};{hand.landmark[MMCP].z:.6f}],"
+                            socketString += f"[{hand.landmark[RMCP].x:.6f};{hand.landmark[RMCP].y:.6f};{hand.landmark[RMCP].z:.6f}],"
+                            socketString += "[0.0;0.0;0.0],"
                         else:
-                            socketString += f"[{handResults.multi_hand_landmarks[0].landmark[lWRIST].x:.6f};{handResults.multi_hand_landmarks[0].landmark[lWRIST].y:.6f};{handResults.multi_hand_landmarks[0].landmark[lWRIST].z:.6f}],"
-                            socketString += "[0.0;0.0;0.0]"
+                            socketString += f"[{hand.landmark[WRIST].x:.6f};{hand.landmark[WRIST].y:.6f};{hand.landmark[WRIST].z:.6f}],"
+                            socketString += "[0.0;0.0;0.0],"
+                            socketString += f"[{hand.landmark[MMCP].x:.6f};{hand.landmark[MMCP].y:.6f};{hand.landmark[MMCP].z:.6f}],"
+                            socketString += f"[{hand.landmark[RMCP].x:.6f};{hand.landmark[RMCP].y:.6f};{hand.landmark[RMCP].z:.6f}],"
+                            socketString += "[0.0;0.0;0.0],"
+                            socketString += "[0.0;0.0;0.0],"
+                            socketString += f"[{hand.landmark[MTIP].x:.6f};{hand.landmark[MTIP].y:.6f};{hand.landmark[MTIP].z:.6f}],"
+
+
                 else:
-                    socketString += "[0.0;0.0;0.0],[0.0;0.0;0.0]"
+                    socketString += "[0.0;0.0;0.0],[0.0;0.0;0.0],"
+                    socketString += "[0.0;0.0;0.0],[0.0;0.0;0.0],"
 
                 if detected:
                     if not lastDetected:
