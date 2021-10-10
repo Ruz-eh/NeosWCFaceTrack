@@ -281,6 +281,7 @@ async def facetrack(websocket,path):
     MMCP = handsModule.HandLandmark.MIDDLE_FINGER_MCP
     RMCP = handsModule.HandLandmark.RING_FINGER_MCP
 
+    MPIP = handsModule.HandLandmark.MIDDLE_FINGER_PIP
     MTIP = handsModule.HandLandmark.MIDDLE_FINGER_TIP
     
     print("Connection Successful")
@@ -463,31 +464,34 @@ async def facetrack(websocket,path):
                         else:
                             lHand = handResults.multi_hand_landmarks[0]
                             rHand = handResults.multi_hand_landmarks[1]
-                        socketString += f"[{lHand.landmark[WRIST].x:.6f};{lHand.landmark[WRIST].y:.6f};{lHand.landmark[WRIST].z:.6f}],"
-                        socketString += f"[{rHand.landmark[WRIST].x:.6f};{rHand.landmark[WRIST].y:.6f};{rHand.landmark[WRIST].z:.6f}],"
-                        socketString += f"[{lHand.landmark[MMCP].x:.6f};{lHand.landmark[MMCP].y:.6f};{lHand.landmark[MMCP].z:.6f}],"
-                        socketString += f"[{lHand.landmark[RMCP].x:.6f};{lHand.landmark[RMCP].y:.6f};{lHand.landmark[RMCP].z:.6f}],"
-                        socketString += f"[{rHand.landmark[MMCP].x:.6f};{rHand.landmark[MMCP].y:.6f};{rHand.landmark[MMCP].z:.6f}],"
-                        socketString += f"[{rHand.landmark[RMCP].x:.6f};{rHand.landmark[RMCP].y:.6f};{rHand.landmark[RMCP].z:.6f}],"
-                        socketString += f"[{lHand.landmark[MTIP].x:.6f};{lHand.landmark[MTIP].y:.6f};{lHand.landmark[MTIP].z:.6f}],"
+                        socketString += f"[{-lHand.landmark[WRIST].x:.6f};{-lHand.landmark[WRIST].y:.6f};{-lHand.landmark[WRIST].z:.6f}],"
+                        socketString += f"[{-rHand.landmark[WRIST].x:.6f};{-rHand.landmark[WRIST].y:.6f};{-rHand.landmark[WRIST].z:.6f}],"
+                        socketString += f"[{-lHand.landmark[MMCP].x:.6f};{-lHand.landmark[MMCP].y:.6f};{-lHand.landmark[MMCP].z:.6f}],"
+                        socketString += f"[{-lHand.landmark[RMCP].x:.6f};{-lHand.landmark[RMCP].y:.6f};{-lHand.landmark[RMCP].z:.6f}],"
+                        socketString += f"[{-rHand.landmark[MMCP].x:.6f};{-rHand.landmark[MMCP].y:.6f};{-rHand.landmark[MMCP].z:.6f}],"
+                        socketString += f"[{-rHand.landmark[RMCP].x:.6f};{-rHand.landmark[RMCP].y:.6f};{-rHand.landmark[RMCP].z:.6f}],"
+                        socketString += f"[{-lHand.landmark[MPIP].x:.6f};{-lHand.landmark[MPIP].y:.6f};{-lHand.landmark[MPIP].z:.6f}],"
+                        socketString += f"[{-lHand.landmark[MTIP].x:.6f};{-lHand.landmark[MTIP].y:.6f};{-lHand.landmark[MTIP].z:.6f}],"
                     else:
                         hand = handResults.multi_hand_landmarks[0]
                         if index == 0:
                             socketString += "[0.0;0.0;0.0],"
-                            socketString += f"[{hand.landmark[WRIST].x:.6f};{hand.landmark[WRIST].y:.6f};{hand.landmark[WRIST].z:.6f}],"
+                            socketString += f"[{-hand.landmark[WRIST].x:.6f};{-hand.landmark[WRIST].y:.6f};{-hand.landmark[WRIST].z:.6f}],"
                             socketString += "[0.0;0.0;0.0],"
                             socketString += "[0.0;0.0;0.0],"
-                            socketString += f"[{hand.landmark[MMCP].x:.6f};{hand.landmark[MMCP].y:.6f};{hand.landmark[MMCP].z:.6f}],"
-                            socketString += f"[{hand.landmark[RMCP].x:.6f};{hand.landmark[RMCP].y:.6f};{hand.landmark[RMCP].z:.6f}],"
+                            socketString += f"[{-hand.landmark[MMCP].x:.6f};{-hand.landmark[MMCP].y:.6f};{-hand.landmark[MMCP].z:.6f}],"
+                            socketString += f"[{-hand.landmark[RMCP].x:.6f};{-hand.landmark[RMCP].y:.6f};{-hand.landmark[RMCP].z:.6f}],"
+                            socketString += "[0.0;0.0;0.0],"
                             socketString += "[0.0;0.0;0.0],"
                         else:
-                            socketString += f"[{hand.landmark[WRIST].x:.6f};{hand.landmark[WRIST].y:.6f};{hand.landmark[WRIST].z:.6f}],"
+                            socketString += f"[{-hand.landmark[WRIST].x:.6f};{-hand.landmark[WRIST].y:.6f};{-hand.landmark[WRIST].z:.6f}],"
                             socketString += "[0.0;0.0;0.0],"
-                            socketString += f"[{hand.landmark[MMCP].x:.6f};{hand.landmark[MMCP].y:.6f};{hand.landmark[MMCP].z:.6f}],"
-                            socketString += f"[{hand.landmark[RMCP].x:.6f};{hand.landmark[RMCP].y:.6f};{hand.landmark[RMCP].z:.6f}],"
+                            socketString += f"[{-hand.landmark[MMCP].x:.6f};{-hand.landmark[MMCP].y:.6f};{-hand.landmark[MMCP].z:.6f}],"
+                            socketString += f"[{-hand.landmark[RMCP].x:.6f};{-hand.landmark[RMCP].y:.6f};{-hand.landmark[RMCP].z:.6f}],"
                             socketString += "[0.0;0.0;0.0],"
                             socketString += "[0.0;0.0;0.0],"
-                            socketString += f"[{hand.landmark[MTIP].x:.6f};{hand.landmark[MTIP].y:.6f};{hand.landmark[MTIP].z:.6f}],"
+                            socketString += f"[{-hand.landmark[MPIP].x:.6f};{-hand.landmark[MPIP].y:.6f};{-hand.landmark[MPIP].z:.6f}],"
+                            socketString += f"[{-hand.landmark[MTIP].x:.6f};{-hand.landmark[MTIP].y:.6f};{-hand.landmark[MTIP].z:.6f}],"
 
 
                 else:

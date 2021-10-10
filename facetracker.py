@@ -252,7 +252,7 @@ try:
             drawingModule = mediapipe.solutions.drawing_utils
             handsModule = mediapipe.solutions.hands
             tracker = Tracker(width, height, threshold=args.threshold, max_threads=args.max_threads, max_faces=args.faces, discard_after=args.discard_after, scan_every=args.scan_every, silent=False if args.silent == 0 else True, model_type=args.model, model_dir=args.model_dir, no_gaze=False if args.gaze_tracking != 0 and args.model != -1 else True, detection_threshold=args.detection_threshold, use_retinaface=args.scan_retinaface, max_feature_updates=args.max_feature_updates, static_model=True if args.no_3d_adapt == 1 else False, try_hard=args.try_hard == 1)
-            hands = handsModule.Hands(static_image_mode=False, min_detection_confidence=0.85, min_tracking_confidence=0.85, max_num_hands=2)
+            hands = handsModule.Hands(static_image_mode=False, min_detection_confidence=0.75, min_tracking_confidence=0.75, max_num_hands=2)
             if not args.video_out is None:
                 out = cv2.VideoWriter(args.video_out, cv2.VideoWriter_fourcc('F','F','V','1'), args.video_fps, (width * args.video_scale, height * args.video_scale))
 
@@ -266,6 +266,7 @@ try:
             if handResults.multi_hand_landmarks != None:
                 #print(handResults.multi_hand_landmarks[1].landmark[handsModule.HandLandmark.INDEX_FINGER_TIP])
                 for handLandmarks in handResults.multi_hand_landmarks:
+                    print(handLandmarks.landmark[handsModule.HandLandmark.MIDDLE_FINGER_TIP])
                     for point in handsModule.HandLandmark:
                         normalizedLandmark = handLandmarks.landmark[point]
                         pixelCoordinatesLandmark = drawingModule._normalized_to_pixel_coordinates(normalizedLandmark.x, normalizedLandmark.y, width, height)
